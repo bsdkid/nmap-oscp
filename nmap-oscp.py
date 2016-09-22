@@ -1,18 +1,4 @@
 #!/usr/bin/python
-#
-# NMAP OSCP Scanner
-# Written by Marc Silver (@bsdkid)
-# marcs@bsdkid.com
-#
-# The aim of this script was to make enumeration and searching in the
-# OSCP lab a little easier, particularly when wanting different scan
-# results or the ability to search through results.
-#
-# This software comes with no disclaimer or warranty.  You may use it
-# and modify it as you wish but please provide credit to the original
-# author.
-#
-# #
 
 import re
 import os
@@ -25,8 +11,8 @@ outputdir = '/root/scan-results'
 nm = nmap.PortScanner()
 hosts = {}
 
-def search_results(DATA, ip, port):
-    if ip == "all":
+def search_results(DATA, scanAll, ip, port):
+    if scanAll is True:
         SCOPE = DATA
     else:
         SCOPE = {}
@@ -42,19 +28,24 @@ def search_results(DATA, ip, port):
                     if int(seenport) == int(port):
                         print '{0} : {1}/{2} ({3})'.format(host, proto, port, nm[host][proto][seenport]['state'])
 
-def view_output_contents(fd):
-    content = fd.read()
-    nm.analyse_nmap_xml_scan(content)
+def view_output(DATA, scanAll, ip):
+    if scanAll is True:
+        SCOPE = DATA
+    else:
+        SCOPE = {}
+        SCOPE[ip] = DATA[ip]
 
-    for host in nm.all_hosts():
-        print '\nHost: {0} ({1})'.format(host, nm[host].hostname())
-        print '  State: {0}'.format(nm[host].state())
-        for proto in nm[host].all_protocols():
-            print '  Protocol: {0}'.format(proto)
-            lport = list(nm[host][proto].keys())
-            lport.sort()
-            for port in lport:
-                print '    {0} ({1})'.format(port, nm[host][proto][port]['state'])
+    for host in SCOPE:
+        nm.analyse_nmap_xml_scan(DATA[host])
+        for address in nm.all_hosts():
+            print '\nHost: {0} ({1})'.format(address, nm[address].hostname())
+            print '  State: {0}'.format(nm[address].state())
+            for proto in nm[address].all_protocols():
+                print '  Protocol: {0}'.format(proto)
+                lport = list(nm[address][proto].keys())
+                lport.sort()
+                for port in lport:
+                    print '    {0} ({1})'.format(port, nm[address][proto][port]['state'])
 
 def get_data():
     for file in glob.glob(outputdir + '/*.xml'):
@@ -70,15 +61,17 @@ def nmap_scan(ip, scantype):
     try:
         print 'Running a {0} scan against {1}'.format(scantype, ip)
         if scantype == 'quick':
-            scanArgs = '-p 80'
-            #scanArgs = None
+            scanArgs = None
         elif scantype == 'udp':
-            scanArgs = '-O -Pn -sU -p 161'
+            scanArgs = '-O -Pn -sU -p-'
         elif scantype == 'tcp':
-            scanArgs = '-O -Pn -sT -p 3389'
+            scanArgs = '-O -Pn -sT -p-'
         elif scantype == 'full':
             scanArgs = '-O -Pn -sTU -p-'
-        nm.scan(ip, arguments=scanArgs)
+        if scanArgs is None:
+            nm.scan(ip)
+        else:
+            nm.scan(ip, arguments=scanArgs)
         return nm
     except:
         print 'Unable to run nmap scan.'
@@ -99,7 +92,7 @@ def main():
     else:
         scanAll = False
     if args.view:
-        view_output(scanAll, args.ip, view_output_contents)
+        view_output(DATA, scanAll, args.ip)
     if args.script:
         data = nmap_scan(args.ip, arguments='--script='+args.script)
         print data
@@ -108,10 +101,7 @@ def main():
         write_output_file(args.ip, args.scan, nm.get_nmap_last_output())
     if args.port:
         print 'Looking for port {0}...'.format(args.port)
-        if args.a:
-            search_results(DATA, "all", args.port)
-        else:
-            search_results(DATA, args.ip, args.port)
+        search_results(DATA, scanAll, args.ip, args.port)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
