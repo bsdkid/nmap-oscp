@@ -24,7 +24,17 @@ import argparse
 # Change this to your preferred output directory.
 outputdir = '/root/scan-results'
 
-nm = nmap.PortScanner()
+try:
+    nm = nmap.PortScanner()
+except:
+    print 'Unable to find nmap, exiting.'
+    sys.exit()
+
+if not os.path.exists(outputdir) or not os.path.isdir(outputdir):
+    print 'Output directory ({0}) does not exist, please create.'.format(outputdir)
+    sys.exit()
+
+# Define hosts for later use
 hosts = {}
 
 def search_results(DATA, scanAll, ip, port):
@@ -93,13 +103,15 @@ def nmap_scan(ip, scantype):
         print 'Unable to run nmap scan.'
 
 def write_output_file(ip, scantype, result):
+    #ip = ip.replace("/", "-")
+    filename = outputdir + '/' + ip + '-' + scantype + '.xml'
     try:
-        outputfile = open(outputdir + '/' + ip + '-' + scantype + '.xml', 'w')
+        outputfile = open(filename, 'w')
         outputfile.truncate()
         outputfile.write(result)
         outputfile.close()
     except:
-        print 'Unable to write output ({0}) to disk.'.format(outputfile)
+        print 'Unable to write output ({0}) to disk.'.format(filename)
 
 def main():
     DATA = get_data()
