@@ -121,9 +121,6 @@ def main():
         scanAll = False
     if args.view:
         view_output(DATA, scanAll, args.ip)
-    if args.script:
-        data = nmap_scan(args.ip, arguments='--script='+args.script)
-        print data
     if args.scan:
         nm = nmap_scan(args.ip, args.scan)
         write_output_file(args.ip, args.scan, nm.get_nmap_last_output())
@@ -139,7 +136,6 @@ if __name__ == '__main__':
     parser.add_argument('-ip', help='IP address of host')
     parser.add_argument('-port', help='Run a search for a port')
     parser.add_argument('-scan', help='Run specified scan', choices=['quick', 'full', 'tcp', 'udp'])
-    parser.add_argument('-script', help='Run NSE script')
     parser.add_argument('-view', help='View scan data', action='store_true')
     parser.add_argument('-a', help='(SEARCH ONLY): Run a search against files in the output dir', action='store_true')
     args = parser.parse_args()
